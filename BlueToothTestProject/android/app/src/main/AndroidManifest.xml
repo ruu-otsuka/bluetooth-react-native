@@ -1,6 +1,23 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-permission android:name="android.permission.INTERNET" />
+    
+    <!-- 基本的なBluetooth権限（API 30以下） -->
+    <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30" />
+    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" android:maxSdkVersion="30" />
+
+    <!-- API 31以降のBluetooth権限 -->
+    <uses-permission android:name="android.permission.BLUETOOTH_SCAN" 
+                        android:usesPermissionFlags="neverForLocation" />
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+    <uses-permission android:name="android.permission.BLUETOOTH_ADVERTISE" />
+
+    <!-- 位置情報の権限（API 30以下のBluetooth スキャンに必要） -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" android:maxSdkVersion="30" />
+
+    <!-- Bluetooth機能を必須にする場合（オプション） -->
+    <uses-feature android:name="android.hardware.bluetooth_le" android:required="true" />
 
     <application
       android:name=".MainApplication"

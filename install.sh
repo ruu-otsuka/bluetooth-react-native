@@ -1,18 +1,64 @@
 # node 環境必須
+
+##################################################
+# react-native の install
+##################################################
+
 # react-native の install
 curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.1/install.sh | bash
-npm install -g react-native@latest
-npm install -g react-native-cli
+
+##################################################
+# react-native の javascript 版 project 作成
+##################################################
 
 # プロジェクト作成
-npx react-native@latest init BlueToothTestProject
+react-native init BlueToothTestProject --pm npm --install-pods true
 cd BlueToothTestProject
 
-# bluetooth プラグインのインストール
-npm install react-native-ble-plx # Bluetooth
+# typescript から javascript へ
+mv App.tsx App.js
+# App.js 内の型アノテーションを削除
+echo 'import React from "react";' > App.js
+echo 'import { View, Text, StyleSheet } from "react-native";' >> App.js
+echo '' >> App.js
+echo 'const App = () => {' >> App.js
+echo '  return (' >> App.js
+echo '    <View style={styles.container}>' >> App.js
+echo '      <Text style={styles.text}>Hello World!</Text>' >> App.js
+echo '    </View>' >> App.js
+echo '  );' >> App.js
+echo '};' >> App.js
+echo '' >> App.js
+echo 'const styles = StyleSheet.create({' >> App.js
+echo '  container: {' >> App.js
+echo '    flex: 1,' >> App.js
+echo '    justifyContent: "center",' >> App.js
+echo '    alignItems: "center",' >> App.js
+echo '    backgroundColor: "#F5FCFF",' >> App.js
+echo '  },' >> App.js
+echo '  text: {' >> App.js
+echo '    fontSize: 24,' >> App.js
+echo '    fontWeight: "bold",' >> App.js
+echo '    color: "#333",' >> App.js
+echo '  },' >> App.js
+echo '});' >> App.js
+echo '' >> App.js
+echo 'export default App;' >> App.js
+# tsconfig.json と jest.config.js を削除
+rm tsconfig.json
+rm jest.config.js
+# package.json から TypeScript 関連の依存関係を削除
+npm uninstall @types/react @types/react-native @typescript-eslint/eslint-plugin @typescript-eslint/parser typescript @types/react-test-renderer @types/react-test-renderer
 
 # index.js → 認証
 # App.tsx → メインの typescript
+
+##################################################
+# plugin installatioin (npm install --save-dev で install)
+##################################################
+
+# bluetooth プラグインのインストール
+npm install --save-dev react-native-ble-plx # Bluetooth
 
 ##################################################
 # ios 開発 (Mac のみ可能)
@@ -41,10 +87,10 @@ cd ..
 npx react-native run-ios
 
 ##################################################
-# web 開発
+# build & run
 ##################################################
 
-npx react-native start
+react-native start --verbose
 
 ##################################################
 # Android 開発
@@ -97,14 +143,42 @@ echo "java.home=/usr/lib/jvm/java-17-openjdk-amd64" >> "./android/local.properti
 
 # アセットの生成
 mkdir -p android/app/src/main/assets
-npx react-native bundle --entry-file index.js --platform android --dev false --bundle-output android/app/src/main/assets/index.android.bundle --assets-dest android/app/src/main/res
+react-native bundle --entry-file index.js --platform android --dev false --bundle-output android/app/src/main/assets/index.android.bundle --assets-dest android/app/src/main/res
+
+# bundle ファイル作成
+mkdir -p android/app/src/main/assets
+react-native bundle --platform android --dev false --entry-file index.js --bundle-output android/app/src/main/assets/index.android.bundle --assets-dest android/app/src/main/res
+
+
+# android/app/src/main/AndroidManifest.xml ファイルにて、permission の追加
+<!-- 基本的なBluetooth権限（API 30以下） -->
+<uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30" />
+<uses-permission android:name="android.permission.BLUETOOTH_ADMIN" android:maxSdkVersion="30" />
+
+<!-- API 31以降のBluetooth権限 -->
+<uses-permission android:name="android.permission.BLUETOOTH_SCAN" 
+                    android:usesPermissionFlags="neverForLocation" />
+<uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+<uses-permission android:name="android.permission.BLUETOOTH_ADVERTISE" />
+
+<!-- 位置情報の権限（API 30以下のBluetooth スキャンに必要） -->
+<uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" android:maxSdkVersion="30" />
+<uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" android:maxSdkVersion="30" />
+
+<!-- API 31以降で位置情報が必要な場合（オプション） -->
+<uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+
+<!-- Bluetooth機能を必須にする場合（オプション） -->
+<uses-feature android:name="android.hardware.bluetooth_le" android:required="true" />
+
 
 # React Native Doctorの実行
-npx react-native doctor
+react-native doctor
 
 # クリーンビルド
 cd android
 rm -rf ~/.gradle/caches/
+./gradlew --stop
 ./gradlew clean
 cd ..
 npx react-native bundle --entry-file index.js --platform android --dev false --bundle-output android/app/src/main/assets/index.android.bundle --assets-dest android/app/src/main/res
@@ -150,26 +224,29 @@ adb connect 192.168.68.50:5555
 adb devices
 
 # build
-rm -rf ~/.gradle/caches/
-rm -rf android/.gradle/
-rm -rf android/app/build/
-cd android
-./gradlew clean
-cd ..
-npx react-native run-android --mode=release
-
-
 cd android
 rm -rf ~/.gradle/caches/
+./gradlew --stop
 ./gradlew clean
 cd ..
-npx react-native bundle --entry-file index.js --platform android --dev false --bundle-output android/app/src/main/assets/index.android.bundle --assets-dest android/app/src/main/res
+react-native bundle --entry-file index.js --platform android --dev false --bundle-output android/app/src/main/assets/index.android.bundle --assets-dest android/app/src/main/res
 cd android
 ./gradlew assembleDebug
 cd ..
 adb kill-server
 adb start-server
-npx react-native run-android --mode=release
+react-native run-android --mode=release
 
 # install
+adb install -r android/app/build/outputs/apk/release/app-release.apk
+
+
+
+
+# 簡易デバッグ
+adb connect 192.168.68.50:5555
+react-native run-android
+
+# install
+react-native run-android --mode=release
 adb install -r android/app/build/outputs/apk/release/app-release.apk
