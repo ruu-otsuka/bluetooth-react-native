@@ -1,4 +1,4 @@
-package com.bluetoothtestproject
+package com.bluetoothtestproject2
 
 import android.app.Application
 import com.facebook.react.PackageList

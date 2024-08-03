@@ -74,9 +74,9 @@ android {
     buildToolsVersion rootProject.ext.buildToolsVersion
     compileSdk rootProject.ext.compileSdkVersion
 
-    namespace "com.bluetoothtestproject"
+    namespace "com.bluetoothtestproject2"
     defaultConfig {
-        applicationId "com.bluetoothtestproject"
+        applicationId "com.bluetoothtestproject2"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1

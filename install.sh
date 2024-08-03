@@ -5,6 +5,7 @@
 ##################################################
 
 # react-native の install
+nvm install --lts
 curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.1/install.sh | bash
 
 ##################################################
@@ -12,8 +13,8 @@ curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.1/install.sh | bash
 ##################################################
 
 # プロジェクト作成
-react-native init BlueToothTestProject --pm npm --install-pods true
-cd BlueToothTestProject
+npx react-native init BlueToothTestProject2 --pm npm --install-pods true
+cd BlueToothTestProject2
 
 # typescript から javascript へ
 mv App.tsx App.js
@@ -58,7 +59,7 @@ npm uninstall @types/react @types/react-native @typescript-eslint/eslint-plugin 
 ##################################################
 
 # bluetooth プラグインのインストール
-npm install --save-dev react-native-ble-plx # Bluetooth
+npm install --save react-native-ble-manager
 
 ##################################################
 # ios 開発 (Mac のみ可能)
@@ -90,7 +91,7 @@ npx react-native run-ios
 # build & run
 ##################################################
 
-react-native start --verbose
+npx react-native start --verbose
 
 ##################################################
 # Android 開発
@@ -172,8 +173,12 @@ react-native bundle --platform android --dev false --entry-file index.js --bundl
 <uses-feature android:name="android.hardware.bluetooth_le" android:required="true" />
 
 
+# 古いパッケージを更新
+npm outdated
+npm update
+
 # React Native Doctorの実行
-react-native doctor
+npx react-native doctor
 
 # クリーンビルド
 cd android
@@ -245,7 +250,7 @@ adb install -r android/app/build/outputs/apk/release/app-release.apk
 
 # 簡易デバッグ
 adb connect 192.168.68.50:5555
-react-native run-android
+npx react-native start --verbose
 
 # install
 react-native run-android --mode=release

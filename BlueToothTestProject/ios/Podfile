@@ -14,7 +14,7 @@ if linkage != nil
   use_frameworks! :linkage => linkage.to_sym
 end
 
-target 'BlueToothTestProject' do
+target 'BlueToothTestProject2' do
   config = use_native_modules!
 
   use_react_native!(
@@ -23,7 +23,7 @@ target 'BlueToothTestProject' do
     :app_path => "#{Pod::Config.instance.installation_root}/.."
   )
 
-  target 'BlueToothTestProjectTests' do
+  target 'BlueToothTestProject2Tests' do
     inherit! :complete
     # Pods for testing
   end
