@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert } from 'react-native';
+import { SafeAreaView, View, Text, StyleSheet, TextInput, Button, FlatList, TouchableOpacity, Alert } from 'react-native';
 import BleManager from 'react-native-ble-manager';
 import { requestPermissions } from "./request_permissions";
 import BluetoothSerial from 'react-native-bluetooth-classic';
@@ -149,35 +149,122 @@ const App = () => {
   };
   
   return (
-    <View style={styles.container}>
-      <Text style={styles.text}>Bluetooth Classic Devices</Text>
+    <SafeAreaView style={styles.container}>
+      <View style={styles.header}>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+          <Text style={styles.text}>現在時刻：</Text>
+          <Text style={styles.text}>YYYY/mm/DD HH:MM</Text>
+        </View>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+          <TextInput
+            style={styles.input}
+            onChangeText={() => {}}
+            value={""}
+            placeholder="水位計のデバイス ID を入力"
+          />
+          <Button
+            title="接続"
+            style={styles.button}
+            onPress={() => console.log("接続ボタンが押されました")}
+          />
+        </View>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+          <Text style={styles.text}>受信機との接続状況：</Text>
+          <Text style={styles.text}>未接続</Text>
+          <Text style={styles.text}>　　水位計との通信状況：</Text>
+          <View style={[styles.circle, { backgroundColor: "#ff0000" }]} />
+        </View>
+        <Text style={styles.text}>ログデータを取得したい期間</Text>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+          <TextInput
+            style={styles.input}
+            onChangeText={() => {}}
+            value={""}
+            placeholder="年/月/日 時:分"
+          />
+          <Text style={styles.textInterInput}> 〜 </Text>
+          <TextInput
+            style={styles.input}
+            onChangeText={() => {}}
+            value={""}
+            placeholder="年/月/日 時:分"
+          />
+        </View>
+        <Button
+          title="クラウドに Upload"
+          style={styles.button}
+          onPress={() => console.log("uploadボタンが押されました")}
+        />
+      </View>
       <FlatList
         data={devices}
-        keyExtractor={(item) => item.id}
         renderItem={renderItem}
+        keyExtractor={item => item.id}
+        style={styles.list}
       />
-      <Text style={styles.text}>BLE Devices</Text>
-      <FlatList
-        data={bleDevices}
-        keyExtractor={(item) => item.id}
-        renderItem={renderItem}
-      />
-    </View>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "#666666",
+    flexDirection: "column", 
+    backgroundColor: "#cccccc",
+  },
+  header: {
+    padding: 16,
+    flexDirection: "column", 
+    justifyContent: 'space-between',
+    backgroundColor: '#f0f0f0'
   },
   text: {
-    fontSize: 24,
+    fontSize: 14,
     fontWeight: "bold",
     color: "#000000",
   },
+  textInterInput: {
+    fontSize: 14,
+    fontWeight: "normal",
+    textAlign:"center",
+    textAlignVertical:"middle",
+    color: "#000000",
+    height: 48,
+  },
+  input: {
+    fontSize: 14,
+    fontWeight: "normal",
+    color: "#000000",
+    textAlign:"center",
+    height: 48,
+    padding: 5,
+    margin: 0
+  },
+  button: {
+    fontSize: 14,
+    fontWeight: "normal",
+    color: "#000000",
+    textAlign:"center",
+    textAlignVertical:"middle",
+    height: 48,
+    paddingTop: 5,
+    paddingBottom: 5,
+    paddingRight: 5,
+    paddingLeft: 5,
+    marginBottom: 5,
+    marginTop: 5
+  },
+  list: {
+    flex: 1,
+  },
+  row: {
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#ccc',
+  },
+
+
+
   item: {
     fontSize: 14,
     color: "#ffffff",  // 明確に文字色を指定
