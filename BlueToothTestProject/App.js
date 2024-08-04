@@ -1,59 +1,40 @@
 import React, { useState, useEffect } from 'react';
 import { SafeAreaView, View, Text, StyleSheet, TextInput, Button, FlatList, TouchableOpacity, Alert } from 'react-native';
-import BleManager from 'react-native-ble-manager';
 import { requestPermissions } from "./request_permissions";
 import BluetoothSerial from 'react-native-bluetooth-classic';
+import DropDownPicker from 'react-native-dropdown-picker';
+
 
 const App = () => {
   const [devices, setDevices] = useState([]);
-  const [devicesConnectable, setDevicesConnectable] = useState([]);
-  const [bleDevices, setBleDevices] = useState([]);
-  const [bleDevicesConnectable, setBleDevicesConnectable] = useState([]);
   const [isEnabled, setIsEnabled] = useState(false);
 
+  // コンボボックス用の状態
+  const [open, setOpen] = useState(false);
+  const [value, setValue] = useState(null);
+  const [items, setItems] = useState([
+    {label: 'デバイスA', value: 'deviceA'},
+    {label: 'デバイスB', value: 'deviceB'},
+    {label: 'デバイスC', value: 'deviceC'},
+    // 必要に応じて他のデバイスを追加
+  ]);
+  // サンプルデータログ
+  const [dataLog, setDataLog] = useState([
+    { id: '1', datetime: '2024-08-03 10:00', data1: '25.5', data2: '60', data3: '1013', data4: '5.2', data5: '80' },
+    { id: '2', datetime: '2024-08-03 11:00', data1: '26.0', data2: '62', data3: '1012', data4: '5.5', data5: '82' },
+    { id: '3', datetime: '2024-08-03 12:00', data1: '26.5', data2: '61', data3: '1011', data4: '5.3', data5: '81' },
+    // 必要に応じてデータを追加
+  ]);
+
   useEffect(() => {
-    const initializeBle = async () => {
-      try{
-        await requestPermissions();  // パーミッションをリクエスト
-
-        BleManager.start({ showAlert: false });
-
-        const handleDiscoverPeripheral = (peripheral) => {
-          console.log('Discovered Peripheral:', peripheral.advertising.serviceUUIDs);
-          // console.log('Discovered Peripheral:', peripheral.id);
-          setBleDevices(prevDevices => {
-            if (prevDevices.find(device => device.id === peripheral.id)) {
-              return prevDevices; // すでに存在する場合は追加しない
-            }
-            return [...prevDevices, peripheral];
-          });
-        };
-
-        BleManager.start({ showAlert: false }).then(() => {
-          BleManager.scan([], 10, true).then(() => {
-            console.log('Scanning for BLE devices...');
-          }).catch(error => {
-            console.log('Scan error:', error);
-          });
-        });
-
-        BleManager.addListener('BleManagerDiscoverPeripheral', handleDiscoverPeripheral);
-        return () => {
-          BleManager.remove('BleManagerDiscoverPeripheral', handleDiscoverPeripheral);
-        };
-      }catch(e){
-        console.error('Error initializing BLE:', e);
-      }
-    };
-
     const checkBluetooth = async () => {
       try {
         console.log('Checking Bluetooth Classic deices');
         const enabled = await BluetoothSerial.isBluetoothEnabled();
         setIsEnabled(enabled);
-
         if (enabled) {
           const bondedDevices = await BluetoothSerial.getBondedDevices();
+          console.log(bondedDevices);
           console.log('Bluetooth Classic is bonded');
           for (let i=0;i<bondedDevices.length;i++){
             console.log(bondedDevices[i]);
@@ -68,28 +49,9 @@ const App = () => {
       }
     };
 
-    initializeBle();
     checkBluetooth();
     
   }, []);
-
-  const sendBLEMessage = async (device, serviceUUID, characteristicUUID, message) => {
-    // serviceUUID：心拍数モニタリング、バッテリーレベルの報告、温度センサーなどのサービスに紐づくもの
-    // characteristicUUID：心拍数センサーのサービス内に「心拍数」と「接続状態」を表すキャラクタリスティックが含まれているようなイメージ
-    try {
-      await BleManager.connect(device.id);
-      await BleManager.startNotification(device.id, serviceUUID, characteristicUUID);
-  
-      // メッセージをバッファに変換
-      const data = Buffer.from(message, 'utf-8');
-      
-      // キャラクタリスティックに書き込み
-      await BleManager.write(device.id, serviceUUID, characteristicUUID, data);
-      console.log('Message sent:', message);
-    } catch (error) {
-      console.error('Error sending BLE message:', error);
-    }
-  };
 
   const sendMessage = async (device, message) => {
     try {
@@ -142,11 +104,22 @@ const App = () => {
       <TouchableOpacity onPress={() => pairAndConnect(item)}>
         <View style={styles.itemContainer}>
           <Text style={textStyle}>{item.name || 'Unnamed Device'}</Text>
-          <Text style={styles.id}>{item.id}</Text>
+          <Text style={styles.address}>{item.address}</Text>
         </View>
       </TouchableOpacity>
     );
   };
+
+  const renderLogItem = ({ item }) => (
+    <View style={styles.logItem}>
+      <Text style={styles.logText}>{item.datetime}</Text>
+      <Text style={styles.logText}>{item.data1}</Text>
+      <Text style={styles.logText}>{item.data2}</Text>
+      <Text style={styles.logText}>{item.data3}</Text>
+      <Text style={styles.logText}>{item.data4}</Text>
+      <Text style={styles.logText}>{item.data5}</Text>
+    </View>
+  );
   
   return (
     <SafeAreaView style={styles.container}>
@@ -155,52 +128,78 @@ const App = () => {
           <Text style={styles.text}>現在時刻：</Text>
           <Text style={styles.text}>YYYY/mm/DD HH:MM</Text>
         </View>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-          <TextInput
-            style={styles.input}
-            onChangeText={() => {}}
-            value={""}
-            placeholder="水位計のデバイス ID を入力"
-          />
-          <Button
-            title="接続"
+        <View style={styles.inputContainer}>
+          <View style={styles.dropdownWrapper}>
+          <DropDownPicker
+              open={open}
+              value={value}
+              items={items}
+              setOpen={setOpen}
+              setValue={setValue}
+              setItems={setItems}
+              placeholder="水位計のデバイス ID を選択"
+              searchable={true}
+              searchPlaceholder="デバイス ID を検索..."
+              style={styles.dropdown}
+              textStyle={styles.dropdownText}
+              dropDownContainerStyle={styles.dropdownContainer}
+              containerStyle={styles.dropdownMainContainer}
+              zIndex={3000}
+            />
+          </View>
+          <TouchableOpacity
             style={styles.button}
             onPress={() => console.log("接続ボタンが押されました")}
-          />
+          >
+            <Text style={styles.buttonText}>接続</Text>
+          </TouchableOpacity>
         </View>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
           <Text style={styles.text}>受信機との接続状況：</Text>
           <Text style={styles.text}>未接続</Text>
-          <Text style={styles.text}>　　水位計との通信状況：</Text>
-          <View style={[styles.circle, { backgroundColor: "#ff0000" }]} />
+        </View>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+          <Text style={styles.text}>水位計との通信状況：</Text>
+          <Text style={{color: "#ff0000" , fontSize: 16}}>●</Text>
         </View>
         <Text style={styles.text}>ログデータを取得したい期間</Text>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+        <View style={styles.dateInputContainer}>
           <TextInput
-            style={styles.input}
+            style={styles.dateInput}
             onChangeText={() => {}}
             value={""}
             placeholder="年/月/日 時:分"
+            placeholderTextColor="#888"
           />
-          <Text style={styles.textInterInput}> 〜 </Text>
+          <Text style={styles.textInterInput}>〜</Text>
           <TextInput
-            style={styles.input}
+            style={styles.dateInput}
             onChangeText={() => {}}
             value={""}
             placeholder="年/月/日 時:分"
+            placeholderTextColor="#888"
           />
         </View>
-        <Button
-          title="クラウドに Upload"
-          style={styles.button}
+        <TouchableOpacity
+          style={styles.uploadButton}
           onPress={() => console.log("uploadボタンが押されました")}
-        />
+        >
+          <Text style={styles.buttonText}>クラウドに Upload</Text>
+        </TouchableOpacity>
+      </View>
+      <View style={styles.logHeader}>
+        <Text style={styles.logHeaderText}>日時</Text>
+        <Text style={styles.logHeaderText}>データ1</Text>
+        <Text style={styles.logHeaderText}>データ2</Text>
+        <Text style={styles.logHeaderText}>データ3</Text>
+        <Text style={styles.logHeaderText}>データ4</Text>
+        <Text style={styles.logHeaderText}>データ5</Text>
       </View>
       <FlatList
-        data={devices}
-        renderItem={renderItem}
+        data={dataLog}
+        renderItem={renderLogItem}
         keyExtractor={item => item.id}
-        style={styles.list}
+        style={styles.logList}
       />
     </SafeAreaView>
   );
@@ -222,38 +221,92 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "bold",
     color: "#000000",
+    margin: 5,
+  },
+  inputContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+    zIndex: 1000, // ドロップダウンが他の要素の上に表示されるようにする
+  },
+  dropdownWrapper: {
+    flex: 1,
+    marginRight: 10,
+  },
+  dropdown: {
+    borderColor: '#ccc',
+  },
+  dropdownMainContainer: {
+    height: 40,
+  },
+  dropdownText: {
+    fontSize: 14,
+    color: '#000000',
+  },
+  dropdownContainer: {
+    borderColor: '#ccc',
+  },
+
+  input: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: "normal",
+    color: "#000000",
+    textAlign: "center",
+    height: 48,
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 5,
+    paddingHorizontal: 10,
+    marginRight: 10,
+  },
+  button: {
+    backgroundColor: '#007AFF',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 5,
+  },
+  buttonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: 'bold',
+    textAlign: 'center',
+  },
+  dateInputContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  dateInput: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: "normal",
+    color: "#000000",
+    textAlign: "center",
+    height: 48,
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 5,
+    paddingHorizontal: 10,
   },
   textInterInput: {
     fontSize: 14,
     fontWeight: "normal",
-    textAlign:"center",
-    textAlignVertical:"middle",
     color: "#000000",
-    height: 48,
+    paddingHorizontal: 10,
   },
-  input: {
-    fontSize: 14,
-    fontWeight: "normal",
-    color: "#000000",
-    textAlign:"center",
-    height: 48,
-    padding: 5,
-    margin: 0
+  uploadButton: {
+    backgroundColor: '#4CAF50',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 5,
+    alignSelf: 'stretch',
   },
-  button: {
-    fontSize: 14,
-    fontWeight: "normal",
-    color: "#000000",
-    textAlign:"center",
-    textAlignVertical:"middle",
-    height: 48,
-    paddingTop: 5,
-    paddingBottom: 5,
-    paddingRight: 5,
-    paddingLeft: 5,
-    marginBottom: 5,
-    marginTop: 5
-  },
+
+
+
   list: {
     flex: 1,
   },
@@ -282,6 +335,41 @@ const styles = StyleSheet.create({
   },
   notConnectable: {
     color: '#ff0000', // 接続不可能なときは赤
+  },
+  statusDot: {
+    color: "#ff0000",
+    fontSize: 16,
+  },
+  logHeader: {
+    flexDirection: 'row',
+    backgroundColor: '#e0e0e0',
+    paddingVertical: 10,
+    paddingHorizontal: 5,
+    borderBottomWidth: 1,
+    borderBottomColor: '#ccc',
+  },
+  logHeaderText: {
+    flex: 1,
+    fontSize: 12,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    color: "#000000",
+  },
+  logList: {
+    flex: 1,
+  },
+  logItem: {
+    flexDirection: 'row',
+    paddingVertical: 10,
+    paddingHorizontal: 5,
+    borderBottomWidth: 1,
+    borderBottomColor: '#ccc',
+  },
+  logText: {
+    flex: 1,
+    fontSize: 12,
+    textAlign: 'center',
+    color: "#000000",
   },
 });
 
